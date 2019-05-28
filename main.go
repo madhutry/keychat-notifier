@@ -14,12 +14,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const matrixApiHost = "localhost:8008"
-
-//const matrixApiHost = "13.232.162.152:8008"
-const friezeChatHost = "localhost:6060"
-const matAccCode = "MDAxNWxvY2F0aW9uIHByaXZhdGUKMDAxM2lkZW50aWZpZXIga2V5CjAwMTBjaWQgZ2VuID0gMQowMDI1Y2lkIHVzZXJfaWQgPSBAbWFpbmFkbWluOnByaXZhdGUKMDAxNmNpZCB0eXBlID0gYWNjZXNzCjAwMjFjaWQgbm9uY2UgPSBeeU8qSVVmXkQmb2QmQVNKCjAwMmZzaWduYXR1cmUgIZ0wsA7ywHHPQUhQ1AYPhlc-ePmVa8YPnib36bvM7_oK"
-
 type ReceivedMesg struct {
 	MessageText string `json:"message"`
 	Sender      string `json:"sender"`
@@ -28,15 +22,16 @@ type ReceivedMesg struct {
 }
 
 func main() {
+	InitConfig()
 	Init()
 	dbBatchId := fetchBatchId()
 	newmessageRecd := false
 
 	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=7&limit=2%s"
-	endpoint := fmt.Sprintf(apiHost, matrixApiHost, matAccCode)
+	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode())
 
 	if len(dbBatchId) > 0 {
-		endpoint = fmt.Sprintf(apiHost, matrixApiHost, matAccCode, "&since="+dbBatchId)
+		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "&since="+dbBatchId)
 	}
 	fmt.Println(endpoint)
 	start := time.Now()
@@ -147,7 +142,7 @@ func dbInsertNotification(startTime time.Time, endTime time.Time, payload string
 }
 func apiSendMessage(jsonData map[string]interface{}) {
 	apiHost := "http://%s/chat/notify"
-	endpoint := fmt.Sprintf(apiHost, friezeChatHost)
+	endpoint := fmt.Sprintf(apiHost, GetFriezeChatAPIUrl())
 	jsonValue, _ := json.Marshal(jsonData)
 	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
