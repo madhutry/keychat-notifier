@@ -10,15 +10,15 @@ import (
 
 func InitConfig() {
 	home, _ := os.UserHomeDir()
-	/* 	if os.Getenv("ENVIRONMENT") == "DEV" {
-	 */fmt.Println("loafing dev env")
-	viper.SetConfigName("server")
-	viper.SetConfigType("json")
-	viper.AddConfigPath(filepath.Dir(home + "/"))
-	viper.ReadInConfig()
-	/* 	} else {
+	if os.Getenv("ENVIRONMENT") == "DEV" {
+		fmt.Println("loafing dev env")
+		viper.SetConfigName("server")
+		viper.SetConfigType("json")
+		viper.AddConfigPath(filepath.Dir(home + "/"))
+		viper.ReadInConfig()
+	} else {
 		viper.AutomaticEnv()
-	} */
+	}
 
 }
 
