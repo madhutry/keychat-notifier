@@ -105,18 +105,14 @@ func fetchNewMessage() {
 		var out bytes.Buffer
 		json.Indent(&out, bytesArr, "=", "\t")
 		out.WriteTo(os.Stdout)
+		elapsed := time.Now()
 		if newmessageRecd {
 			log.Println("Message Sent to API")
 			apiSendMessage(result)
+			dbNotificationProcessed(dbBatchId)
+			dbInsertNotification(start, elapsed, string(data), nextBatch)
 		} else {
 			log.Println("No Message Sent To API")
-		}
-
-		elapsed := time.Now()
-
-		dbInsertNotification(start, elapsed, string(data), nextBatch)
-		if len(dbBatchId) > 0 {
-			dbNotificationProcessed(dbBatchId)
 		}
 	}
 }
@@ -137,7 +133,7 @@ func fetchBatchId() string {
 	}
 }
 func dbNotificationProcessed(batchId string) {
-	updateNotification := `UPDATE notification_job	set processed=1 WHERE processed=0 and batch_id=$1`
+	updateNotification := `UPDATE notification_job	set processed=1 WHERE processed=0`
 	db := Envdb.db
 
 	updateNotificationStmt, err := db.Prepare(updateNotification)
@@ -145,7 +141,7 @@ func dbNotificationProcessed(batchId string) {
 		log.Fatal(err)
 	}
 	defer updateNotificationStmt.Close()
-	_, err = updateNotificationStmt.Exec(batchId)
+	_, err = updateNotificationStmt.Exec()
 	if err != nil {
 		log.Fatal(err)
 	}
