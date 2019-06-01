@@ -52,7 +52,7 @@ func tick() {
 func fetchNewMessage() {
 	dbBatchId := fetchBatchId()
 	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=7&limit=2%s"
-	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode())
+	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "")
 
 	if len(dbBatchId) > 0 {
 		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "&since="+dbBatchId)
