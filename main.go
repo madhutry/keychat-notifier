@@ -35,21 +35,35 @@ func main() {
 
 	InitConfig()
 	Init()
-	dbBatchId := fetchBatchId()
-	newmessageRecd := false
+	InitLog()
+	tick()
+}
+func tick() {
+	ticker := time.NewTicker(time.Second * 1).C
+	for {
+		select {
+		case <-ticker:
+			fetchNewMessage()
+		}
+	}
 
+	//time.Sleep(time.Second * 10)
+}
+func fetchNewMessage() {
+	dbBatchId := fetchBatchId()
 	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=7&limit=2%s"
 	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode())
 
 	if len(dbBatchId) > 0 {
 		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "&since="+dbBatchId)
 	}
-	fmt.Println(endpoint)
+	log.Println(endpoint)
 	start := time.Now()
+	newmessageRecd := false
 
 	response, err := http.Get(endpoint)
 	if err != nil {
-		fmt.Printf("The HTTP request failed with error %s\n", err)
+		log.Printf("The HTTP request failed with error %s\n", err)
 		return
 	} else {
 		data, _ := ioutil.ReadAll(response.Body)
@@ -60,12 +74,12 @@ func main() {
 		var f map[string]interface{}
 		json.Unmarshal([]byte(data), &f)
 		nextBatch := f["next_batch"].(string)
-		fmt.Println(nextBatch)
+		log.Println(nextBatch)
 		rooms := f["rooms"].(map[string]interface{})["join"].(map[string]interface{})
 		var messagesResult = make(map[string][]ReceivedMesg)
 		for k, _ := range rooms {
 			var messages []ReceivedMesg
-			fmt.Println("Room ID" + k)
+			log.Println("Room ID" + k)
 			timelime := rooms[k].(map[string]interface{})["timeline"].(map[string]interface{})["events"]
 			events := timelime.([]interface{})
 			for _, v1 := range events {
@@ -160,9 +174,6 @@ func apiSendMessage(jsonData map[string]interface{}) {
 		fmt.Printf("The HTTP request failed with error %s\n", err)
 	} else {
 		fmt.Println("Succ")
-		//data, _ := ioutil.ReadAll(response.Body)
-		//var f interface{}
-		//json.Unmarshal([]byte(data), &f)
 	}
 
 }
