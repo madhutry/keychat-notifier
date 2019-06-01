@@ -9,9 +9,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/theckman/go-flock"
 )
 
 type ReceivedMesg struct {
@@ -22,6 +24,15 @@ type ReceivedMesg struct {
 }
 
 func main() {
+	fmt.Printf("Locking %s/%s:%s\n", os.TempDir(), "/go-lock.lock", strconv.Itoa(os.Getpid()))
+	f := flock.New(os.TempDir() + "/go-lock.lock")
+	f.TryLock() // unchecked errors here
+	if !f.Locked() {
+		fmt.Printf("Existing...%s\n", strconv.Itoa(os.Getpid()))
+		os.Exit(3)
+	}
+	defer f.Unlock()
+
 	InitConfig()
 	Init()
 	dbBatchId := fetchBatchId()
