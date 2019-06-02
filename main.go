@@ -58,7 +58,7 @@ func fetchNewMessage() {
 	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "")
 
 	if len(dbBatchId) > 0 {
-		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "&since="+dbBatchId)
+		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "&since="+dbBatchId)
 	}
 	log.Println(endpoint)
 	start := time.Now()
@@ -72,7 +72,7 @@ func fetchNewMessage() {
 		data, _ := ioutil.ReadAll(response.Body)
 		var out1 bytes.Buffer
 		json.Indent(&out1, data, "=", "\t")
-		//out1.WriteTo(os.Stdout)
+		out1.WriteTo(os.Stdout)
 
 		var f map[string]interface{}
 		json.Unmarshal([]byte(data), &f)
