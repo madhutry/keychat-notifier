@@ -13,6 +13,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	pborman "github.com/pborman/uuid"
 	"github.com/theckman/go-flock"
 )
 
@@ -20,6 +21,7 @@ type ReceivedMesg struct {
 	MessageText string `json:"message"`
 	Sender      string `json:"sender"`
 	Timestamp   string `json:"timestamp"`
+	TransId     string `json:"transid"`
 	RoomId      string
 }
 
@@ -51,8 +53,9 @@ func tick() {
 }
 func fetchNewMessage() {
 	dbBatchId := fetchBatchId()
-	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=7&limit=2%s"
-	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "")
+	filterId := GetFilterId()
+	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=%s&limit=2%s"
+	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "")
 
 	if len(dbBatchId) > 0 {
 		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), "&since="+dbBatchId)
@@ -69,7 +72,7 @@ func fetchNewMessage() {
 		data, _ := ioutil.ReadAll(response.Body)
 		var out1 bytes.Buffer
 		json.Indent(&out1, data, "=", "\t")
-		out1.WriteTo(os.Stdout)
+		//out1.WriteTo(os.Stdout)
 
 		var f map[string]interface{}
 		json.Unmarshal([]byte(data), &f)
@@ -86,11 +89,17 @@ func fetchNewMessage() {
 				sender := v1.(map[string]interface{})["sender"].(string)
 				timeSent := v1.(map[string]interface{})["origin_server_ts"].(float64)
 				mesg := v1.(map[string]interface{})["content"].(map[string]interface{})["body"].(string)
+				transIdVal := v1.(map[string]interface{})["content"].(map[string]interface{})["trans_id"]
+				transId := pborman.NewRandom().String()
+				if transIdVal != nil {
+					transId = transIdVal.(string)
+				}
 				mesgStruct := ReceivedMesg{
 					MessageText: mesg,
 					Sender:      sender,
 					Timestamp:   fmt.Sprintf("%f", timeSent),
 					RoomId:      k,
+					TransId:     transId,
 				}
 				newmessageRecd = true
 				messages = append(messages, mesgStruct)
@@ -104,15 +113,14 @@ func fetchNewMessage() {
 
 		var out bytes.Buffer
 		json.Indent(&out, bytesArr, "=", "\t")
-		out.WriteTo(os.Stdout)
+		//out.WriteTo(os.Stdout)
 		elapsed := time.Now()
 		if newmessageRecd {
 			log.Println("Message Sent to API")
-			apiSendMessage(result)
+			//apiSendMessage(result)
+			saveMessages(messagesResult)
 			dbNotificationProcessed(dbBatchId)
 			dbInsertNotification(start, elapsed, string(data), nextBatch)
-		} else {
-			log.Println("No Message Sent To API")
 		}
 	}
 }
@@ -159,6 +167,39 @@ func dbInsertNotification(startTime time.Time, endTime time.Time, payload string
 	_, err = insertNotificationStmt.Exec(startTime, endTime, payload, batchId, 0)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
+	db := Envdb.db
+
+	saveMesg := `INSERT INTO messages	(		mesg_id,message,server_received_ts,sender,room_id,create_ts	)
+	VALUES	
+	(		$1,		$2,		$3,		$4,		$5,		$6 )	
+	`
+	saveMesgStmt, err := db.Prepare(saveMesg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer saveMesgStmt.Close()
+
+	for k, mesg := range messagesRecvd {
+		roomID := k
+		mesgArr := mesg
+		for _, val := range mesgArr {
+			mesgId := val.TransId
+			mesgStr := val.MessageText
+			ts := val.Timestamp
+			sender := val.Sender
+			/* 			v := val.(map[string]interface{})
+			   			mesgStr := v["message"].(string)
+			   			ts := v["timestamp"].(string)
+			   			sender := v["sender"].(string) */
+			_, err = saveMesgStmt.Exec(mesgId, mesgStr, ts, sender, roomID, time.Now())
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 }
 func apiSendMessage(jsonData map[string]interface{}) {
