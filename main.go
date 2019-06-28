@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -22,6 +23,8 @@ type ReceivedMesg struct {
 	Sender      string `json:"sender"`
 	Timestamp   string `json:"timestamp"`
 	TransId     string `json:"transid"`
+	MesgType    string `json:"mesgtype"`
+	Url         string `json:"url"`
 	RoomId      string
 }
 
@@ -56,7 +59,7 @@ func fetchNewMessage() {
 	filterId := GetFilterId()
 	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=%s&limit=2%s"
 	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "")
-
+	fmt.Println(endpoint)
 	if len(dbBatchId) > 0 {
 		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "&since="+dbBatchId)
 	}
@@ -90,6 +93,13 @@ func fetchNewMessage() {
 				timeSent := v1.(map[string]interface{})["origin_server_ts"].(float64)
 				mesg := v1.(map[string]interface{})["content"].(map[string]interface{})["body"].(string)
 				transIdVal := v1.(map[string]interface{})["content"].(map[string]interface{})["trans_id"]
+				mesgType := v1.(map[string]interface{})["content"].(map[string]interface{})["msgtype"].(string)
+				urlVal, ok := v1.(map[string]interface{})["content"].(map[string]interface{})["url"]
+				url := ""
+				if ok {
+					url = urlVal.(string)[strings.LastIndex(urlVal.(string), "/")+1:]
+				}
+
 				transId := pborman.NewRandom().String()
 				if transIdVal != nil {
 					transId = transIdVal.(string)
@@ -100,6 +110,8 @@ func fetchNewMessage() {
 					Timestamp:   fmt.Sprintf("%f", timeSent),
 					RoomId:      k,
 					TransId:     transId,
+					MesgType:    mesgType,
+					Url:         url,
 				}
 				newmessageRecd = true
 				messages = append(messages, mesgStruct)
@@ -173,9 +185,9 @@ func dbInsertNotification(startTime time.Time, endTime time.Time, payload string
 func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 	db := Envdb.db
 
-	saveMesg := `INSERT INTO messages	(		mesg_id,message,server_received_ts,sender,room_id,create_ts	)
+	saveMesg := `INSERT INTO messages	(		mesg_id,message,server_received_ts,sender,room_id,create_ts,url,mesg_type	)
 	VALUES	
-	(		$1,		$2,		$3,		$4,		$5,		$6 )	
+	(		$1,		$2,		$3,		$4,		$5,		$6,$7,$8 )	
 	`
 	saveMesgStmt, err := db.Prepare(saveMesg)
 	if err != nil {
@@ -191,11 +203,13 @@ func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 			mesgStr := val.MessageText
 			ts := val.Timestamp
 			sender := val.Sender
+			mesgType := val.MesgType
+			url := val.Url
 			/* 			v := val.(map[string]interface{})
 			   			mesgStr := v["message"].(string)
 			   			ts := v["timestamp"].(string)
 			   			sender := v["sender"].(string) */
-			_, err = saveMesgStmt.Exec(mesgId, mesgStr, ts, sender, roomID, time.Now())
+			_, err = saveMesgStmt.Exec(mesgId, mesgStr, ts, sender, roomID, time.Now(), url, mesgType)
 			if err != nil {
 				panic(err)
 			}
