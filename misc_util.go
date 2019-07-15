@@ -46,12 +46,12 @@ func GetDBUrl() string {
 func GetMatrixServerUrl() string {
 	return viper.GetString("MATRIX_URL")
 }
-func GetFriezeChatAPIUrl() string {
-	return viper.GetString("FRIEZE_CHAT_API_HOST")
-}
 func GetMatrixAdminCode() string {
 	return viper.GetString("MATRIX_ADMIN_ACCESS_CODE")
 }
 func GetFilterId() string {
 	return viper.GetString("FILTER_ID")
+}
+func GetFCMServerCode() string {
+	return viper.GetString("FCM_SERVER_CODE")
 }

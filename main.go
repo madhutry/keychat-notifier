@@ -26,6 +26,7 @@ type ReceivedMesg struct {
 	MesgType    string `json:"mesgtype"`
 	Url         string `json:"url"`
 	RoomId      string
+	EventId     string
 }
 
 func main() {
@@ -90,6 +91,7 @@ func fetchNewMessage() {
 			events := timelime.([]interface{})
 			for _, v1 := range events {
 				sender := v1.(map[string]interface{})["sender"].(string)
+				eventId := v1.(map[string]interface{})["event_id"].(string)
 				timeSent := v1.(map[string]interface{})["origin_server_ts"].(float64)
 				mesg := v1.(map[string]interface{})["content"].(map[string]interface{})["body"].(string)
 				transIdVal := v1.(map[string]interface{})["content"].(map[string]interface{})["trans_id"]
@@ -112,6 +114,7 @@ func fetchNewMessage() {
 					TransId:     transId,
 					MesgType:    mesgType,
 					Url:         url,
+					EventId:     eventId,
 				}
 				newmessageRecd = true
 				messages = append(messages, mesgStruct)
@@ -129,13 +132,14 @@ func fetchNewMessage() {
 		elapsed := time.Now()
 		if newmessageRecd {
 			log.Println("Message Sent to API")
-			//apiSendMessage(result)
+			processAndroidNotifier(messagesResult)
 			saveMessages(messagesResult)
 			dbNotificationProcessed(dbBatchId)
 			dbInsertNotification(start, elapsed, string(data), nextBatch)
 		}
 	}
 }
+
 func fetchBatchId() string {
 	fetchBatchId := "select batch_id from notification_job where processed=0"
 	var batchId sql.NullString
@@ -215,16 +219,4 @@ func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 			}
 		}
 	}
-}
-func apiSendMessage(jsonData map[string]interface{}) {
-	apiHost := "http://%s/chat/notify"
-	endpoint := fmt.Sprintf(apiHost, GetFriezeChatAPIUrl())
-	jsonValue, _ := json.Marshal(jsonData)
-	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
-	if err != nil {
-		fmt.Printf("The HTTP request failed with error %s\n", err)
-	} else {
-		fmt.Println("Succ")
-	}
-
 }
