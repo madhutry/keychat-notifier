@@ -132,7 +132,7 @@ func fetchNewMessage() {
 		elapsed := time.Now()
 		if newmessageRecd {
 			log.Println("Message Sent to API")
-			processAndroidNotifier(messagesResult)
+			//processAndroidNotifier(messagesResult)
 			saveMessages(messagesResult)
 			dbNotificationProcessed(dbBatchId)
 			dbInsertNotification(start, elapsed, string(data), nextBatch)
