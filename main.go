@@ -60,11 +60,11 @@ func fetchNewMessage() {
 	filterId := GetFilterId()
 	apiHost := "http://%s/_matrix/client/r0/sync?access_token=%s&filter=%s&limit=2%s"
 	endpoint := fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "")
-	fmt.Println(endpoint)
+	//fmt.Println(endpoint)
 	if len(dbBatchId) > 0 {
 		endpoint = fmt.Sprintf(apiHost, GetMatrixServerUrl(), GetMatrixAdminCode(), filterId, "&since="+dbBatchId)
 	}
-	log.Println(endpoint)
+	//log.Println(endpoint)
 	start := time.Now()
 	newmessageRecd := false
 
@@ -76,12 +76,11 @@ func fetchNewMessage() {
 		data, _ := ioutil.ReadAll(response.Body)
 		var out1 bytes.Buffer
 		json.Indent(&out1, data, "=", "\t")
-		out1.WriteTo(os.Stdout)
+		//out1.WriteTo(os.Stdout)
 
 		var f map[string]interface{}
 		json.Unmarshal([]byte(data), &f)
 		nextBatch := f["next_batch"].(string)
-		log.Println(nextBatch)
 		rooms := f["rooms"].(map[string]interface{})["join"].(map[string]interface{})
 		var messagesResult = make(map[string][]ReceivedMesg)
 		for k, _ := range rooms {

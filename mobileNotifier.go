@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 )
 
 func processAndroidNotifier(messagesRecvd map[string][]ReceivedMesg) {
@@ -53,7 +52,7 @@ func apiGetPushkey(āccessCd string) string {
 		data, _ := ioutil.ReadAll(response.Body)
 		var out1 bytes.Buffer
 		json.Indent(&out1, data, "=", "\t")
-		out1.WriteTo(os.Stdout)
+		//out1.WriteTo(os.Stdout)
 
 		var f map[string]interface{}
 		json.Unmarshal([]byte(data), &f)
@@ -95,7 +94,7 @@ func apiSendNotification(pushkey string, eventId string, roomId string) interfac
 		json.Unmarshal([]byte(data), &f)
 		var out1 bytes.Buffer
 		json.Indent(&out1, data, "=", "\t")
-		out1.WriteTo(os.Stdout)
+		//out1.WriteTo(os.Stdout)
 		return f
 	}
 }
