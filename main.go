@@ -185,7 +185,23 @@ func dbInsertNotification(startTime time.Time, endTime time.Time, payload string
 		panic(err)
 	}
 }
+func setLastTimeMesgSent(sender string, timeRecvd string) {
+	log.Println("Setting Last mesg sent for sender %s", sender)
+	updateTime := `update mat_acc_cd_owner set  last_mesg_recd_time=$1 where userid=$2`
+	db := Envdb.db
 
+	updateTimeStmt, err := db.Prepare(updateTime)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer updateTimeStmt.Close()
+	_, err = updateTimeStmt.Exec(timeRecvd, sender)
+	if err != nil {
+		log.Fatal(err)
+		log.Printf("Error Last mesg sent for sender %s", sender)
+
+	}
+}
 func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 	db := Envdb.db
 
@@ -214,6 +230,7 @@ func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 			   			ts := v["timestamp"].(string)
 			   			sender := v["sender"].(string) */
 			_, err = saveMesgStmt.Exec(mesgId, mesgStr, ts, sender, roomID, time.Now(), url, mesgType)
+			setLastTimeMesgSent(sender, ts)
 			if err != nil {
 				panic(err)
 			}
