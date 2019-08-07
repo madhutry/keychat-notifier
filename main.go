@@ -204,9 +204,9 @@ func setLastTimeMesgSent(sender string, timeRecvd string) {
 func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 	db := Envdb.db
 
-	saveMesg := `INSERT INTO messages	(		mesg_id,message,server_received_ts,sender,room_id,create_ts,url,mesg_type	)
+	saveMesg := `INSERT INTO messages	(		mesg_id,message,server_received_ts,sender,room_id,create_ts,url,mesg_type,event_id	)
 	VALUES	
-	(		$1,		$2,		$3,		$4,		$5,		$6,$7,$8 )	
+	(		$1,		$2,		$3,		$4,		$5,		$6,$7,$8,$9 )	
 	`
 	saveMesgStmt, err := db.Prepare(saveMesg)
 	if err != nil {
@@ -224,11 +224,12 @@ func saveMessages(messagesRecvd map[string][]ReceivedMesg) {
 			sender := val.Sender
 			mesgType := val.MesgType
 			url := val.Url
+			eventId := val.EventId
 			/* 			v := val.(map[string]interface{})
 			   			mesgStr := v["message"].(string)
 			   			ts := v["timestamp"].(string)
 			   			sender := v["sender"].(string) */
-			_, err = saveMesgStmt.Exec(mesgId, mesgStr, ts, sender, roomID, time.Now(), url, mesgType)
+			_, err = saveMesgStmt.Exec(mesgId, mesgStr, ts, sender, roomID, time.Now(), url, mesgType, eventId)
 			setLastTimeMesgSent(sender, ts)
 			if err != nil {
 				panic(err)
