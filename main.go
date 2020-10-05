@@ -30,8 +30,8 @@ type ReceivedMesg struct {
 }
 
 func main() {
-	fmt.Printf("Locking %s/%s:%s\n", os.TempDir(), "/go-lock.lock", strconv.Itoa(os.Getpid()))
-	f := flock.New(os.TempDir() + "/go-lock.lock")
+	fmt.Printf("Locking %s:%s\n", "go-lock.lock", strconv.Itoa(os.Getpid()))
+	f := flock.New("go-lock.lock")
 	f.TryLock() // unchecked errors here
 	if !f.Locked() {
 		fmt.Printf("Existing...%s\n", strconv.Itoa(os.Getpid()))
