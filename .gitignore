@@ -2,3 +2,8 @@ go-lock.lock
 go-lock1.lock
 envlist.txt
 envlist.txt
+t.txt
+.vscode/launch.json1
+misc_util.go
+main.go
+.gitignore

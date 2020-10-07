@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -47,10 +48,40 @@ func GetMatrixServerUrl() string {
 	return viper.GetString("MATRIX_URL")
 }
 func GetMatrixAdminCode() string {
-	return viper.GetString("MATRIX_ADMIN_ACCESS_CODE")
+	adminCd := viper.GetString("MATRIX_ADMIN_ACCESS_CODE")
+	if len(adminCd) == 0 {
+		loadAdminInfoEnv()
+		adminCd = viper.GetString("MATRIX_ADMIN_ACCESS_CODE")
+	}
+	return adminCd
 }
 func GetFilterId() string {
-	return viper.GetString("FILTER_ID")
+	filterid := viper.GetString("FILTER_ID")
+	if len(filterid) == 0 {
+		loadAdminInfoEnv()
+		filterid = viper.GetString("FILTER_ID")
+	}
+	return filterid
+}
+func loadAdminInfoEnv() {
+	userid, acc_cd, filterid := dbFetchAdminInfo()
+	os.Setenv("MATRIX_ADMIN_USERID", userid)
+	os.Setenv("MATRIX_ADMIN_ACCESS_CODE", acc_cd)
+	os.Setenv("FILTER_ID", filterid)
+}
+func dbFetchAdminInfo() (string, string, string) {
+	fetchAdminInfo := "SELECT userid,access_code,filter_id FROM public.admin_info where active='Y'"
+	var userId sql.NullString
+	var accessCode sql.NullString
+	var filterId sql.NullString
+	db := Envdb.db
+
+	fetchBatchIdStmt, err := db.Prepare(fetchAdminInfo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fetchBatchIdStmt.QueryRow().Scan(&userId, &accessCode, &filterId)
+	return userId.String, accessCode.String, filterId.String
 }
 func GetFCMServerCode() string {
 	return viper.GetString("FCM_SERVER_CODE")

@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -30,7 +29,6 @@ type ReceivedMesg struct {
 func main() {
 	InitConfig()
 	Init()
-	loadAdminInfoEnv()
 	InitLog()
 	tick()
 }
@@ -45,26 +43,7 @@ func tick() {
 
 	//time.Sleep(time.Second * 10)
 }
-func loadAdminInfoEnv() {
-	userid, acc_cd, filterid := dbFetchAdminInfo()
-	os.Setenv("MATRIX_ADMIN_USERID", userid)
-	os.Setenv("MATRIX_ADMIN_ACCESS_CODE", acc_cd)
-	os.Setenv("FILTER_ID", filterid)
-}
-func dbFetchAdminInfo() (string, string, string) {
-	fetchAdminInfo := "SELECT userid,access_code,filter_id FROM public.admin_info where active='Y'"
-	var userId sql.NullString
-	var accessCode sql.NullString
-	var filterId sql.NullString
-	db := Envdb.db
 
-	fetchBatchIdStmt, err := db.Prepare(fetchAdminInfo)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fetchBatchIdStmt.QueryRow().Scan(&userId, &accessCode, &filterId)
-	return userId.String, accessCode.String, filterId.String
-}
 func fetchNewMessage() {
 	dbBatchId := fetchBatchId()
 	filterId := GetFilterId()
