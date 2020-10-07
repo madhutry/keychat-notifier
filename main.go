@@ -9,13 +9,11 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
 	pborman "github.com/pborman/uuid"
-	"github.com/theckman/go-flock"
 )
 
 type ReceivedMesg struct {
@@ -30,17 +28,9 @@ type ReceivedMesg struct {
 }
 
 func main() {
-	fmt.Printf("Locking %s:%s\n", "go-lock.lock", strconv.Itoa(os.Getpid()))
-	f := flock.New("go-lock.lock")
-	f.TryLock() // unchecked errors here
-	if !f.Locked() {
-		fmt.Printf("Existing...%s\n", strconv.Itoa(os.Getpid()))
-		os.Exit(3)
-	}
-	defer f.Unlock()
-
 	InitConfig()
 	Init()
+	loadAdminInfoEnv()
 	InitLog()
 	tick()
 }
@@ -54,6 +44,26 @@ func tick() {
 	}
 
 	//time.Sleep(time.Second * 10)
+}
+func loadAdminInfoEnv() {
+	userid, acc_cd, filterid := dbFetchAdminInfo()
+	os.Setenv("MATRIX_ADMIN_USERID", userid)
+	os.Setenv("MATRIX_ADMIN_ACCESS_CODE", acc_cd)
+	os.Setenv("FILTER_ID", filterid)
+}
+func dbFetchAdminInfo() (string, string, string) {
+	fetchAdminInfo := "SELECT userid,access_code,filter_id FROM public.admin_info where active='Y'"
+	var userId sql.NullString
+	var accessCode sql.NullString
+	var filterId sql.NullString
+	db := Envdb.db
+
+	fetchBatchIdStmt, err := db.Prepare(fetchAdminInfo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fetchBatchIdStmt.QueryRow().Scan(&userId, &accessCode, &filterId)
+	return userId.String, accessCode.String, filterId.String
 }
 func fetchNewMessage() {
 	dbBatchId := fetchBatchId()
